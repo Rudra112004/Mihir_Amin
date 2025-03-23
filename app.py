@@ -5,10 +5,13 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 app = Flask(__name__)
-CORS(app)
 
-# Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+# Enable CORS
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Use Railway PostgreSQL
+DATABASE_URL = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://")  # Fix for SQLAlchemy
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -21,14 +24,14 @@ class CareerHelp(db.Model):
     linkedin_id = db.Column(db.String(255), nullable=False)
     university = db.Column(db.String(255), nullable=False)
     how_do_you_know_me = db.Column(db.String(255), nullable=False)
-    referrer_name = db.Column(db.String(255), nullable=True)  # Optional field
+    referrer_name = db.Column(db.String(255), nullable=True)
     experience = db.Column(db.Text, nullable=False)
     company = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(255), nullable=True)
-    current_status = db.Column(db.String(255), nullable=False)  # New field to match frontend
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())  # Timestamp
+    current_status = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-# Create the database tables
+# Create tables
 with app.app_context():
     db.create_all()
 
@@ -38,14 +41,14 @@ def submit():
         data = request.json
         new_entry = CareerHelp(
             name=data["name"],
-            linkedin_id=data["linkedinID"],  # Matches frontend field
+            linkedin_id=data["linkedinID"],
             university=data["university"],
-            how_do_you_know_me=data["connectionType"],  # Matches frontend
-            referrer_name=data.get("referral_name"),  # Optional field
-            experience=data["growthStory"],  # Matches frontend
-            company=data.get("companyName"),  # Optional
-            role=data.get("role"),  # Optional
-            current_status=data["currentStatus"]  # New field
+            how_do_you_know_me=data["connectionType"],
+            referrer_name=data.get("referral_name"),
+            experience=data["growthStory"],
+            company=data.get("companyName"),
+            role=data.get("role"),
+            current_status=data["currentStatus"]
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -73,4 +76,4 @@ def get_entries():
     ])
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
